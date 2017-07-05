@@ -64,12 +64,13 @@ class EventStreamer:
             print(line)
             tup = self.parse_line(line)
             if(tup.type == 'purchase'):
-                result = dm.addPurchase(tup.id,tup.timestamp,tup.amount,make_stats = (self.log_handler != None),D=self.D, T=self.T)
+                result = dm.addPurchase(tup.id,tup.timestamp,tup.amount,self.D, self.T,make_stats = (self.log_handler != None))
                 if(self.log_handler != None):
                     print('GETS HERE')
                     print(result)
                     if(result):
 
+                        # doing this is a tad inefficient, but saves a lot of complicated code to unparse things and convert them back
                         dump_dict = json.loads(line)
                         dump_dict['mean'] = "{:0.2f}".format(result[0])
                         dump_dict['sd'] = "{:0.2f}".format(result[1])
@@ -78,10 +79,10 @@ class EventStreamer:
                         # write something with log handler
 
             elif(tup.type == 'befriend'):
-                dm.addFriendship(tup.id1,tup.id2)
+                dm.addFriendship(tup.id1,tup.id2,self.T)
 
             elif(tup.type == 'unfriend'):
-                dm.removeFriendship(tup.id1,tup.id2)
+                dm.removeFriendship(tup.id1,tup.id2,self.T)
 
         return dm
 

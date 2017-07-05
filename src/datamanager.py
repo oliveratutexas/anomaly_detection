@@ -3,7 +3,7 @@ import heapq
 import collections
 import statistics
 
-Purchase = collections.namedtuple('Purchase','timestamp amount')
+Purchase = collections.namedtuple('Purchase','timestamp streak amount')
 
 class DataManager:
     def __init__(self):
@@ -12,6 +12,8 @@ class DataManager:
         self.friends = dict()
         # maps user->purchases
         self.purchases = dict()
+        self.last_time_stamp = None
+        self.streak = None
 
     def processFriendshipOps(self,operations):
         '''
@@ -19,11 +21,11 @@ class DataManager:
         '''
         pass
 
-    def init_user(self,user_id):
+    def init_user(self,user_id,T):
         if user_id not in self.friends:
             self.friends[user_id] = set()
             #TODO - change this
-            self.purchases[user_id] = collections.deque(maxlen=3)
+            self.purchases[user_id] = collections.deque(maxlen=T)
 
     def get_neighbor_ids(self,user_id, depth):
         # TODO: turn on ASSERTS
@@ -41,7 +43,7 @@ class DataManager:
                     cur_neighbors = self.friends[neighbor]
                     seen.add(neighbor)
                     neighbors.union(cur_neighbors)
-                
+
         # user is not their own neighbor
         exclusion = set([user_id])
         print('ALL NEIGHBORS ',neighbors)
@@ -67,12 +69,12 @@ class DataManager:
         nums,nums_length = itertools.tee(nums)
 
 
-        bee = [x for x in nums_length]
-        print('T',T)
-        print('THIS IS BEE',bee)
+        #TODO can this be more efficient?
+        exhausted_nums= [x for x in nums_length]
+        print(exhausted_nums)
 
         # Dummy value for no length list
-        if len(bee) < 2:
+        if len(exhausted_nums) < 2:
             return (0,0)
 
         stdev = statistics.pstdev(itertools.islice(nums,T))
@@ -81,9 +83,14 @@ class DataManager:
         #TODO - add rounding documentation to readme
         return (round(mean/100.0,2),round(stdev/100.0,2))
 
-    def addPurchase(self,userID,timestamp,amount,D=None,T=None,make_stats=False):
-        self.init_user(userID)
-        self.purchases[userID].appendleft(Purchase(timestamp,amount))
+    def addPurchase(self,userID,timestamp,amount,D,T,make_stats=False):
+        self.init_user(userID,T)
+        if(self.last_time_stamp != timestamp):
+            self.last_time_stamp = timestamp
+            self.streak = 0
+        else:
+            self.streak += 1
+        self.purchases[userID].appendleft(Purchase(timestamp,self.streak,amount))
         # {"event_type":"purchase", "timestamp":"2017-06-13 11:33:02", "id": "2", "amount": "1601.83", "mean": "29.10", "sd": "21.46"}
 
         if(make_stats):
@@ -101,16 +108,16 @@ class DataManager:
 
         return None
 
-    def addFriendship(self, user1_id,user2_id):
-        self.init_user(user1_id)
-        self.init_user(user2_id)
+    def addFriendship(self, user1_id,user2_id,T):
+        self.init_user(user1_id,T)
+        self.init_user(user2_id,T)
 
         self.friends[user1_id].add(user2_id)
         self.friends[user2_id].add(user1_id)
 
-    def removeFriendship(self,user1_id,user2_id):
-        self.init_user(user1_id)
-        self.init_user(user2_id)
+    def removeFriendship(self,user1_id,user2_id,T):
+        self.init_user(user1_id,T)
+        self.init_user(user2_id,T)
         #TODO - what should I do if they remove friends that aren't in the table?
         self.friends[user1_id].remove(user2_id)
         self.friends[user2_id].remove(user1_id)
