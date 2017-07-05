@@ -8,7 +8,6 @@ Purchase = collections.namedtuple('Purchase','timestamp streak amount')
 
 class DataManager:
     def __init__(self):
-        #TODO - make sure the additions and removals from sets are O(1)
         # maps user->friends
         self.friends = dict()
         # maps user->purchases
@@ -16,21 +15,14 @@ class DataManager:
         self.last_time_stamp = None
         self.streak = None
 
-    def processFriendshipOps(self,operations):
-        '''
-        Processes multiple additions and removals of friendhips at a time.
-        '''
-        pass
-
     def init_user(self,user_id,T):
         if user_id not in self.friends:
             self.friends[user_id] = set()
-            #TODO - change this
             self.purchases[user_id] = collections.deque(maxlen=T)
 
     def get_neighbor_ids(self,user_id, depth):
-        # TODO: turn on ASSERTS
-        assert(depth >= 2)
+        assert(depth >= 1)
+
         # Initialize to the depth 1 neighbors
         neighbors = set(self.friends[user_id])
         print('self friends',self.friends)
@@ -52,27 +44,20 @@ class DataManager:
         return iter(neighbors - exclusion)
 
     def get_stats(self,user_id,D,T):
-        #TODO -maybe modify this for...individual values being added also so this doesn't have to be calculated every single time.
         neighbors = self.get_neighbor_ids(user_id,D)
         purchase_lists = [ iter(self.purchases[user_id]) for user_id in neighbors]
         print('PURCHASE LISTS',purchase_lists)
         # Returns a dummy value that's the same as a no-op.
         #TODO - check whether you need to reverse based on the value of the floats here
-        #TODO - replace the key function with a generator
         sorted_purchase_it = heapq.merge(*purchase_lists)
-        # print('MERGED LISTS: ', [x for x in sorted_purchase_it])
-        #TODO - check if this is unnecessary
         nums = itertools.islice(
             (purch.amount for purch in sorted_purchase_it),
             T)
-        #TODO - check nums_dup
         nums,nums_dup = itertools.tee(nums)
         nums,nums_length = itertools.tee(nums)
 
 
-        #TODO can this be more efficient?
         exhausted_nums= [x for x in nums_length]
-        print(exhausted_nums)
 
         # Dummy value for no length list
         if len(exhausted_nums) < 2:
@@ -80,21 +65,19 @@ class DataManager:
 
         stdev = statistics.pstdev(itertools.islice(nums,T))
         mean = statistics.mean(nums_dup)
-        print('stdev, mean',stdev, mean)
-        #TODO - add rounding documentation to readme
+
         return (round(mean/100.0,2),round(stdev/100.0,2))
 
     def addPurchase(self,userID,timestamp,amount,D,T,make_stats=False):
         self.init_user(userID,T)
         if(self.last_time_stamp != timestamp):
-            # datetime.datetime.now()
+            #print(datetime.datetime.now())
             self.last_time_stamp = timestamp
             self.streak = 0
         else:
-            # datetime.datetime.now()
+            #print(datetime.datetime.now())
             self.streak += 1
         self.purchases[userID].appendleft(Purchase(timestamp,self.streak,amount))
-        # {"event_type":"purchase", "timestamp":"2017-06-13 11:33:02", "id": "2", "amount": "1601.83", "mean": "29.10", "sd": "21.46"}
 
         if(make_stats):
 
@@ -112,6 +95,8 @@ class DataManager:
         return None
 
     def addFriendship(self, user1_id,user2_id,T):
+        if(user1_id == user2_id):
+            raise ValueError("User should not befriend self")
         self.init_user(user1_id,T)
         self.init_user(user2_id,T)
 
@@ -119,9 +104,13 @@ class DataManager:
         self.friends[user2_id].add(user1_id)
 
     def removeFriendship(self,user1_id,user2_id,T):
+        if(user2_id not in self.friends[user1_id] or \
+           user1_id not in self.friends[user2_id]):
+            raise ValueError("Removing non-existant friendship")
+
         self.init_user(user1_id,T)
         self.init_user(user2_id,T)
-        #TODO - what should I do if they remove friends that aren't in the table?
+        
         self.friends[user1_id].remove(user2_id)
         self.friends[user2_id].remove(user1_id)
 

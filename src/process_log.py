@@ -71,20 +71,19 @@ if __name__=='__main__':
     purchase_schema = load_schema(purchase_schema_path)
     params = None
 
+    es = EventStreamer()
     # Read in batch files
     with open(batch_path) as batch_in:
         #read params from first line of batch file
         params = get_params(batch_in.readline(),params_schema_path)
-        es = EventStreamer(params.D, params.T, batch_in,purchase_schema,friendact_schema)
         # capture the state from batch processing
-        dm = es.run()
+        dm = es.run(params.T,params.D,batch_in,purchase_schema,friendact_schema)
 
     with open(stream_path) as stream_in, open(flagged_path,'w+') as stream_out:
         # enable file output
-        es = EventStreamer(params.D, params.T, stream_in,purchase_schema,friendact_schema,log_handler=stream_out)
         # ...with old state
-        es.run(dm=dm)
 
+        es.run(params.T,params.D,stream_in,purchase_schema,friendact_schema,log_fh=stream_out,dm=dm)
 
 
 
