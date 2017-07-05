@@ -2,6 +2,7 @@ import collections
 from collections import OrderedDict
 import json
 import jsonschema
+from jsonschema import ValidationError, SchemaError
 import time
 from datamanager import DataManager
 
@@ -17,75 +18,66 @@ class EventStreamer:
       * Formatting input from streams
 
     '''
-    def __init__(self,Depth,Tlength,input_handler,event_schema,friend_schema,log_handler=None):
-        # TODO - formatting
-        self.D = Depth
-        self.T = Tlength
-        self.input_handler = input_handler
-        self.log_handler = log_handler
-        self.event_schema = event_schema
-        self.friend_schema = friend_schema
 
     def timeToFloat(self,timeStr):
         return time.mktime(time.strptime(timeStr,'%Y-%m-%d %H:%M:%S'))
 
-    def parse_line(self,line):
-        #TODO - replae json.loads with the proper object
+    def parse_line(self,line,event_schema,friend_schema):
+        """
+        Returns the appropriate tuple for a particular line in the log file
+        """
         try:
-            jsonschema.validate(json.loads(line),self.event_schema)
-            # TODO - convert timestamp
+            jsonschema.validate(json.loads(line),event_schema)
             return json.loads(line,object_hook=lambda x: PurchaseEvent(x["event_type"],self.timeToFloat(x['timestamp']), int(x["id"]), int(float(x["amount"])*100)))
 
         except Exception as e:
             # TODO - this is ugly ^^ 
             try:
-                jsonschema.validate(json.loads(line),self.friend_schema)
+                jsonschema.validate(json.loads(line),friend_schema)
                 return json.loads(line,object_hook=lambda x: FriendEvent(x["event_type"],self.timeToFloat(x["timestamp"]),int(x["id1"]),int(x["id2"])))
             except Exception as f:
                 print('On this line',line)
                 print('E Exception',e)
                 print('F Exception',f)
                 print("Both file reads failed")
-                exit(1)
+                raise(f)
 
 
+    def write_line(self,line,result,log_fh):
+        #read from original dict.
+        dump_dict = json.loads(line)
+        #add mean and standard deviation. Format to float
+        dump_dict['mean'] = "{:0.2f}".format(result[0])
+        dump_dict['sd'] = "{:0.2f}".format(result[1])
+        json.dump(OrderedDict([("event_type","purchase"), ("timestamp",dump_dict["timestamp"]),("id",dump_dict["id"]),("amount",dump_dict["amount"]),("mean",dump_dict["mean"]),("sd",dump_dict["sd"])]),log_fh)
+        log_fh.write("\n")
 
-    def run(self, dm=None):
-        #TODO - ugly parameter
+
+    def run(self, T,D,input_fh,event_schema,friend_schema,log_fh=None,dm=None):
+        _dm = None
         if(dm == None):
-            dm = DataManager()
-        
-         
-        #TODO - Is file termination the only valid ending?
-        #TODO - add key to merge sort
-        #TODO - replace heapsort with iterator merge
-        #TODO - Will this speed things up?? : https://stackoverflow.com/questions/5832856/how-to-read-file-n-lines-at-a-time-in-python
-        for line in self.input_handler:
-            print(line)
-            tup = self.parse_line(line)
-            if(tup.type == 'purchase'):
-                result = dm.addPurchase(tup.id,tup.timestamp,tup.amount,self.D, self.T,make_stats = (self.log_handler != None))
-                if(self.log_handler != None):
-                    print('GETS HERE')
-                    print(result)
-                    if(result):
+            _dm = DataManager()
+        else:
+            _dm = dm
 
-                        # doing this is a tad inefficient, but saves a lot of complicated code to unparse things and convert them back
-                        dump_dict = json.loads(line)
-                        dump_dict['mean'] = "{:0.2f}".format(result[0])
-                        dump_dict['sd'] = "{:0.2f}".format(result[1])
-                        json.dump(OrderedDict([("event_type","purchase"), ("timestamp",dump_dict["timestamp"]),("id",dump_dict["id"]),("amount",dump_dict["amount"]),("mean",dump_dict["mean"]),("sd",dump_dict["sd"])]),self.log_handler)
-                        self.log_handler.write("\n")
+        #TODO - Will this speed things up?? : https://stackoverflow.com/questions/5832856/how-to-read-file-n-lines-at-a-time-in-python
+        for line in input_fh:
+            tup = self.parse_line(line,event_schema,friend_schema)
+
+            if(tup.type == 'purchase'):
+                result = _dm.addPurchase(tup.id,tup.timestamp,tup.amount,D,T,make_stats = (log_fh != None))
+                if(log_fh != None and result != (0,0)):
+                    self.write_line(line,result,log_fh)
 
                         # write something with log handler
 
             elif(tup.type == 'befriend'):
-                dm.addFriendship(tup.id1,tup.id2,self.T)
+                _dm.addFriendship(tup.id1,tup.id2,T)
 
             elif(tup.type == 'unfriend'):
-                dm.removeFriendship(tup.id1,tup.id2,self.T)
+                _dm.removeFriendship(tup.id1,tup.id2,T)
 
-        return dm
+        return _dm
 
 
 

@@ -2,6 +2,7 @@ import itertools
 import heapq
 import collections
 import statistics
+import datetime
 
 Purchase = collections.namedtuple('Purchase','timestamp streak amount')
 
@@ -86,9 +87,11 @@ class DataManager:
     def addPurchase(self,userID,timestamp,amount,D,T,make_stats=False):
         self.init_user(userID,T)
         if(self.last_time_stamp != timestamp):
+            # datetime.datetime.now()
             self.last_time_stamp = timestamp
             self.streak = 0
         else:
+            # datetime.datetime.now()
             self.streak += 1
         self.purchases[userID].appendleft(Purchase(timestamp,self.streak,amount))
         # {"event_type":"purchase", "timestamp":"2017-06-13 11:33:02", "id": "2", "amount": "1601.83", "mean": "29.10", "sd": "21.46"}
