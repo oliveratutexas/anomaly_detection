@@ -1,0 +1,32 @@
+{
+    "properties": {
+        "event_type": {
+            "type": "string",
+            "enum": ["befriend", "unfriend"]
+
+        },
+        "timestamp": {
+            "type": "string",
+            "pattern": "\\d{4}-\\d{2}-\\d{2} \\d{2}:\\d{2}:\\d{2}"
+        },
+        "id1": {
+            "type": ["string", "integer"],
+            "pattern": "^[1-9][0-9]*$",
+            "minimum": 1
+
+        },
+        "id2": {
+            "type": ["string", "integer"],
+            "pattern": "^[1-9][0-9]*$",
+            "minimum": 1
+
+
+        }
+    },
+    "required": [
+        "event_type",
+        "timestamp",
+        "id1",
+        "id2"
+    ]
+}
