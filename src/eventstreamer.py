@@ -75,6 +75,7 @@ class EventStreamer:
                         dump_dict['mean'] = "{:0.2f}".format(result[0])
                         dump_dict['sd'] = "{:0.2f}".format(result[1])
                         json.dump(OrderedDict([("event_type","purchase"), ("timestamp",dump_dict["timestamp"]),("id",dump_dict["id"]),("amount",dump_dict["amount"]),("mean",dump_dict["mean"]),("sd",dump_dict["sd"])]),self.log_handler)
+                        self.log_handler.write("\n")
 
                         # write something with log handler
 
