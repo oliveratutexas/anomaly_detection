@@ -1,4 +1,5 @@
 import collections
+from collections import OrderedDict
 import json
 import jsonschema
 import time
@@ -70,9 +71,9 @@ class EventStreamer:
                     if(result):
 
                         dump_dict = json.loads(line)
-                        dump_dict['mean'] = str(result[0])
-                        dump_dict['sd'] = str(result[1])
-                        json.dump(dump_dict,self.log_handler)
+                        dump_dict['mean'] = "{:0.2f}".format(result[0])
+                        dump_dict['sd'] = "{:0.2f}".format(result[1])
+                        json.dump(OrderedDict([("event_type","purchase"), ("timestamp",dump_dict["timestamp"]),("id",dump_dict["id"]),("amount",dump_dict["amount"]),("mean",dump_dict["mean"]),("sd",dump_dict["sd"])]),self.log_handler)
 
                         # write something with log handler
 

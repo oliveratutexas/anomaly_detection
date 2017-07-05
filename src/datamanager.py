@@ -75,11 +75,11 @@ class DataManager:
         if len(bee) < 2:
             return (0,0)
 
-        stdev = statistics.stdev(itertools.islice(nums,T))
+        stdev = statistics.pstdev(itertools.islice(nums,T))
         mean = statistics.mean(nums_dup)
         print('stdev, mean',stdev, mean)
         #TODO - add rounding documentation to readme
-        return (round(stdev/100.0,2),round(mean/100.0,2))
+        return (round(mean/100.0,2),round(stdev/100.0,2))
 
     def addPurchase(self,userID,timestamp,amount,D=None,T=None,make_stats=False):
         self.init_user(userID)
@@ -91,7 +91,7 @@ class DataManager:
             stats = self.get_stats(userID,D,T)
             if stats == (0,0):
                 return None
-            dev_bound = stats[1] + 3 * stats[0]
+            dev_bound = stats[0] + 3 * stats[1]
             print(self)
             print(stats)
             print(dev_bound)
